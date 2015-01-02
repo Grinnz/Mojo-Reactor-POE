@@ -11,7 +11,6 @@ use constant DEBUG => $ENV{MOJO_REACTOR_POE_DEBUG} || 0;
 our $VERSION = '0.001';
 
 my $POE;
-my $session_id;
 
 sub DESTROY { undef $POE; }
 
@@ -82,10 +81,23 @@ sub watch {
 	return $self;
 }
 
+sub _timer {
+	my ($self, $recurring, $after, $cb) = @_;
+	$after ||= 0.0001 if $recurring;
+	
+	my $id = $self->SUPER::_timer($recurring, $after, $cb);
+	my $timer = $self->{timers}{$id};
+	$self->_send_set_timer($id);
+	
+	warn "-- Set timer $id after $after seconds\n" if DEBUG;
+	
+	return $id;
+}
+
 sub _session_exists {
 	my $self = shift;
-	return undef unless defined $session_id;
-	if (my $session = POE::Kernel->ID_id_to_session($session_id)) {
+	return undef unless defined $self->{session_id};
+	if (my $session = POE::Kernel->ID_id_to_session($self->{session_id})) {
 		return $session;
 	}
 	return undef;
@@ -113,60 +125,45 @@ sub _init_session {
 			],
 			heap => { mojo_reactor => $self },
 		);
-		$session_id = $session->ID;
+		$self->{session_id} = $session->ID;
 	}
 	weaken $session->get_heap()->{mojo_reactor};
-	return $session_id;
+	return $self;
 }
 
 sub _send_adjust_timer {
 	my ($self, $id) = @_;
 	# If session doesn't exist, the time will be set when it starts
 	return unless $self->_session_exists;
-	POE::Kernel->call($session_id, mojo_adjust_timer => $id);
+	POE::Kernel->call($self->{session_id}, mojo_adjust_timer => $id);
 }
 
 sub _send_set_timer {
 	my ($self, $id) = @_;
 	# We need a session to set a timer
 	$self->_init_session;
-	POE::Kernel->call($session_id, mojo_set_timer => $id);
+	POE::Kernel->call($self->{session_id}, mojo_set_timer => $id);
 }
 
 sub _send_clear_timer {
 	my ($self, $id) = @_;
-	# If session doesn't exist, the timer will be deleted anyway
+	# If session doesn't exist, the timer won't be re-added
 	return unless $self->_session_exists;
-	my $timer = $self->{timers}{$id};
-	POE::Kernel->call($session_id, mojo_clear_timer => $timer->{poe_id});
+	POE::Kernel->call($self->{session_id}, mojo_clear_timer => $id);
 }
 
 sub _send_set_io {
 	my ($self, $fd) = @_;
 	# We need a session to set a watcher
 	$self->_init_session;
-	POE::Kernel->call($session_id, mojo_set_io => $fd);
+	POE::Kernel->call($self->{session_id}, mojo_set_io => $fd);
 }
 
 sub _send_clear_io {
 	my ($self, $fd) = @_;
-	# If session doesn't exist, the watcher will be deleted anyway
+	# If session doesn't exist, the watcher won't be re-added
 	return unless $self->_session_exists;
-	my $io = $self->{io}{$fd};
-	POE::Kernel->call($session_id, mojo_clear_io => $io->{handle});
-}
-
-sub _timer {
-	my ($self, $recurring, $after, $cb) = @_;
-	$after ||= 0.0001 if $recurring;
-	
-	my $id = $self->SUPER::_timer($recurring, $after, $cb);
-	my $timer = $self->{timers}{$id};
-	$self->_send_set_timer($id);
-	
-	warn "-- Set timer $id after $after seconds\n" if DEBUG;
-	
-	return $id;
+	POE::Kernel->call($self->{session_id}, mojo_clear_io => $fd);
 }
 
 sub _event_start {
@@ -194,6 +191,8 @@ sub _event_stop {
 	
 	warn "-- POE session stopped\n" if DEBUG;
 	
+	return unless $self;
+	
 	# POE is killing this session, and we can't make a new one here.
 	# Queue up the current timers and IO watchers to be started later.
 	$self->{queue} = {
@@ -201,7 +200,7 @@ sub _event_stop {
 		io => [keys %{$self->{io}}]
 	};
 	
-	undef $session_id;
+	undef $self->{session_id};
 }
 
 sub _event_set_timer {
@@ -218,10 +217,14 @@ sub _event_set_timer {
 }
 
 sub _event_clear_timer {
-	my $id = $_[ARG0];
-	POE::Kernel->alarm_remove($id);
+	my ($heap, $id) = @_[HEAP, ARG0];
+	my $self = $heap->{mojo_reactor};
+	return unless exists $self->{timers}{$id}
+		and defined $self->{timers}{$id}{poe_id};
+	my $timer = $self->{timers}{$id};
+	POE::Kernel->alarm_remove($timer->{poe_id});
 	
-	warn "-- Cleared POE timer $id\n" if DEBUG;
+	warn "-- Cleared POE timer $timer->{poe_id}\n" if DEBUG;
 }
 
 sub _event_adjust_timer {
@@ -260,11 +263,15 @@ sub _event_set_io {
 }
 
 sub _event_clear_io {
-	my $handle = $_[ARG0];
-	POE::Kernel->select_read($handle);
-	POE::Kernel->select_write($handle);
+	my ($heap, $fd) = @_[HEAP, ARG0];
+	my $self = $heap->{mojo_reactor};
+	return unless exists $self->{io}{$fd}
+		and defined $self->{io}{$fd}{handle};
+	my $io = $self->{io}{$fd};
+	POE::Kernel->select_read($io->{handle});
+	POE::Kernel->select_write($io->{handle});
 	
-	warn "-- Cleared POE IO watcher for ".fileno($handle)."\n" if DEBUG;
+	warn "-- Cleared POE IO watcher for $fd\n" if DEBUG;
 }
 
 sub _event_timer {
