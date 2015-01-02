@@ -8,6 +8,8 @@ use Scalar::Util 'weaken';
 use constant { POE_IO_READ => 0, POE_IO_WRITE => 1 };
 use constant DEBUG => $ENV{MOJO_REACTOR_POE_DEBUG} || 0;
 
+our $VERSION = '0.001';
+
 my $POE;
 my $session_id;
 
@@ -292,5 +294,50 @@ sub _event_io {
 		die "Unknown POE I/O mode $mode";
 	}
 }
+
+=head1 NAME
+
+Mojo::Reactor::POE - POE backend for Mojo::Reactor
+
+=head1 SYNOPSIS
+
+ use Mojo::Reactor::POE;
+
+=head1 DESCRIPTION
+
+L<Mojo::Reactor::POE> is an event reactor that uses L<POE>. The usage is
+exactly the same as other reactor backends such as L<Mojo::Reactor::Poll>.
+To set it as the default backend for L<Mojo::IOLoop>, set the C<MOJO_REACTOR>
+environment variable to C<Mojo::Reactor::POE>.
+
+=head1 EVENTS
+
+L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor::Poll>.
+
+=head1 METHODS
+
+L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll>.
+
+=head1 BUGS
+
+L<POE> has a complex session system which may lead to bugs when used in this
+manner. Report any issues on the public bugtracker.
+
+=head1 AUTHOR
+
+Dan Book, C<dbook@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2015, Dan Book.
+
+This library is free software; you may redistribute it and/or modify it under
+the terms of the Artistic License version 2.0.
+
+=head1 SEE ALSO
+
+L<Mojolicious>, L<Mojolicious::IOLoop>, L<POE>
+
+=cut
 
 1;
