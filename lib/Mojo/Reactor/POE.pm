@@ -433,6 +433,12 @@ this method requires an active I/O watcher.
 
 =head1 CAVEATS
 
+If you set a timer or I/O watcher, and don't call L</"start"> or
+L</"one_tick"> (or start L<POE::Kernel> separately), L<POE> will output a
+warning that C<POE::Kernel->run()> was not called. This is consistent with
+creating your own L<POE::Session> and not starting L<POE::Kernel>. See
+L<POE::Kernel/"run"> for more information.
+
 To stop the L<POE::Kernel> reactor, all sessions must be stopped and are thus
 destroyed. Be aware of this if you create your own L<POE> sessions then stop
 the reactor. I/O and timer events managed by L<Mojo::Reactor::POE> will
