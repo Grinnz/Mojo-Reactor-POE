@@ -12,7 +12,7 @@ our $VERSION = '0.001';
 
 my $POE;
 
-sub DESTROY { undef $POE; }
+sub DESTROY { shift->reset; undef $POE; }
 
 sub again {
 	my ($self, $id) = @_;
@@ -42,6 +42,7 @@ sub recurring { shift->_timer(1, @_) }
 
 sub remove {
 	my ($self, $remove) = @_;
+	return unless defined $remove;
 	if (ref $remove) {
 		if (exists $self->{io}{fileno $remove}) {
 			$self->_send_clear_io(fileno $remove);
