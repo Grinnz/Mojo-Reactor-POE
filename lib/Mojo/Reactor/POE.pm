@@ -423,7 +423,7 @@ called or no events are being watched anymore.
 
   $reactor->stop;
 
-Stop watching for I/O and timer events.
+Stop watching for I/O and timer events. See L</"CAVEATS">.
 
 =head2 timer
 
@@ -441,9 +441,10 @@ this method requires an active I/O watcher.
 
 =head1 CAVEATS
 
-To stop the reactor in POE, all sessions must be stopped and are thus
-destroyed. Be aware of this if you create your own POE sessions then stop the
-reactor.
+To stop the L<POE::Kernel> reactor, all sessions must be stopped and are thus
+destroyed. Be aware of this if you create your own L<POE> sessions then stop
+the reactor. I/O and timer events managed by L<Mojo::Reactor::POE> will
+persist.
 
 =head1 BUGS
 
