@@ -84,7 +84,8 @@ sub watch {
 
 sub _session_exists {
 	my $self = shift;
-	if ($session_id and my $session = POE::Kernel->ID_id_to_session($session_id)) {
+	return undef unless defined $session_id;
+	if (my $session = POE::Kernel->ID_id_to_session($session_id)) {
 		return $session;
 	}
 	return undef;
@@ -233,7 +234,8 @@ sub _event_adjust_timer {
 	my $new_delay = $timer->{time} - steady_time;
 	POE::Kernel->delay_adjust($timer->{poe_id}, $new_delay);
 	
-	warn "-- Adjusted POE timer $timer->{poe_id} to $new_delay seconds\n" if DEBUG;
+	warn "-- Adjusted POE timer $timer->{poe_id} to $new_delay seconds\n"
+		if DEBUG;
 }
 
 sub _event_set_io {
@@ -253,7 +255,8 @@ sub _event_set_io {
 		POE::Kernel->select_write($io->{handle});
 	}
 	
-	warn "-- Set POE IO watcher for $fd with read: $io->{read}, write: $io->{write}\n" if DEBUG;
+	warn "-- Set POE IO watcher for $fd " .
+		"with read: $io->{read}, write: $io->{write}\n" if DEBUG;
 }
 
 sub _event_clear_io {
@@ -305,10 +308,10 @@ Mojo::Reactor::POE - POE backend for Mojo::Reactor
 
 =head1 DESCRIPTION
 
-L<Mojo::Reactor::POE> is an event reactor that uses L<POE>. The usage is
-exactly the same as other reactor backends such as L<Mojo::Reactor::Poll>.
-To set it as the default backend for L<Mojo::IOLoop>, set the C<MOJO_REACTOR>
-environment variable to C<Mojo::Reactor::POE>.
+L<Mojo::Reactor::POE> is an event reactor for L<Mojo::Reactor> that uses
+L<POE>. The usage is exactly the same as other reactor backends such as
+L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::IOLoop>,
+set the C<MOJO_REACTOR> environment variable to C<Mojo::Reactor::POE>.
 
 =head1 EVENTS
 
@@ -316,7 +319,87 @@ L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor::Poll>.
 
 =head1 METHODS
 
-L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll>.
+L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll> and
+implements the following new ones.
+
+=head2 again
+
+  $reactor->again($id);
+
+Restart active timer.
+
+=head2 io
+
+  $reactor = $reactor->io($handle => sub {...});
+
+Watch handle for I/O events, invoking the callback whenever handle becomes
+readable or writable.
+
+=head2 is_running
+
+  my $bool = $reactor->is_running;
+
+Check if reactor is running.
+
+=head2 new
+
+  my $reactor = Mojo::Reactor::POE->new;
+
+Construct a new L<Mojo::Reactor::POE> object.
+
+=head2 one_tick
+
+  $reactor->one_tick;
+
+Run reactor until an event occurs or no events are being watched anymore. Note
+that this method can recurse back into the reactor, so you need to be careful.
+
+=head2 recurring
+
+  my $id = $reactor->recurring(0.25 => sub {...});
+
+Create a new recurring timer, invoking the callback repeatedly after a given
+amount of time in seconds.
+
+=head2 remove
+
+  my $bool = $reactor->remove($handle);
+  my $bool = $reactor->remove($id);
+
+Remove handle or timer.
+
+=head2 reset
+
+  $reactor->reset;
+
+Remove all handles and timers.
+
+=head2 start
+
+  $reactor->start;
+
+Start watching for I/O and timer events, this will block until L</"stop"> is
+called or no events are being watched anymore.
+
+=head2 stop
+
+  $reactor->stop;
+
+Stop watching for I/O and timer events.
+
+=head2 timer
+
+  my $id = $reactor->timer(0.5 => sub {...});
+
+Create a new timer, invoking the callback after a given amount of time in
+seconds.
+
+=head2 watch
+
+  $reactor = $reactor->watch($handle, $readable, $writable);
+
+Change I/O events to watch handle for with true and false values. Note that
+this method requires an active I/O watcher.
 
 =head1 BUGS
 
