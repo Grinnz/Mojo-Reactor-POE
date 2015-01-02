@@ -12,7 +12,7 @@ our $VERSION = '0.001';
 
 my $POE;
 
-sub DESTROY { shift->reset; undef $POE; }
+sub DESTROY { shift->_send_shutdown; undef $POE; }
 
 sub again {
 	my ($self, $id) = @_;
@@ -120,6 +120,7 @@ sub _init_session {
 					mojo_clear_io		=> '_event_clear_io',
 					mojo_timer			=> '_event_timer',
 					mojo_io				=> '_event_io',
+					mojo_shutdown		=> '_event_shutdown',
 				},
 			],
 			heap => { mojo_reactor => $self },
@@ -163,6 +164,12 @@ sub _send_clear_io {
 	# If session doesn't exist, the watcher won't be re-added
 	return unless $self->_session_exists;
 	POE::Kernel->call($self->{session_id}, mojo_clear_io => $fd);
+}
+
+sub _send_shutdown {
+	my $self = shift;
+	return unless $self->_session_exists;
+	POE::Kernel->call($self->{session_id}, 'mojo_shutdown');
 }
 
 sub _event_start {
@@ -302,6 +309,18 @@ sub _event_io {
 	} else {
 		die "Unknown POE I/O mode $mode";
 	}
+}
+
+sub _event_shutdown {
+	my $self = $_[HEAP]->{mojo_reactor};
+	# TODO: remove all I/O watchers at once?
+	# we may not have the filehandles here during global destruction
+	foreach my $fd (keys %{$self->{io}}) {
+		my $handle = $self->{io}{$fd}{handle} // next;
+		POE::Kernel->select_read($handle);
+		POE::Kernel->select_write($handle);
+	}
+	POE::Kernel->alarm_remove_all();
 }
 
 =head1 NAME
