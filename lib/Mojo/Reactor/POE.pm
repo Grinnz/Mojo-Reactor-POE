@@ -439,6 +439,12 @@ seconds.
 Change I/O events to watch handle for with true and false values. Note that
 this method requires an active I/O watcher.
 
+=head1 CAVEATS
+
+To stop the reactor in POE, all sessions must be stopped and are thus
+destroyed. Be aware of this if you create your own POE sessions then stop the
+reactor.
+
 =head1 BUGS
 
 L<POE> has a complex session system which may lead to bugs when used in this
