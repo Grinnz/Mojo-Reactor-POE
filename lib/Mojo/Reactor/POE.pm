@@ -26,15 +26,8 @@ sub is_running {
 	return !!($session->ID ne POE::Kernel->ID);
 }
 
-sub new {
-	my $class = shift;
-	if ($POE++) {
-		return Mojo::Reactor::Poll->new;
-	}
-	my $self = $class->SUPER::new;
-	$self->_init_session;
-	return $self;
-}
+# We have to fall back to Mojo::Reactor::Poll, since POE::Kernel is unique
+sub new { $POE++ ? Mojo::Reactor::Poll->new : shift->SUPER::new }
 
 sub one_tick { shift->_init_session; POE::Kernel->run_one_timeslice; }
 
@@ -106,8 +99,7 @@ sub _session_exists {
 
 sub _init_session {
 	my $self = shift;
-	my $session;
-	unless ($session = $self->_session_exists) {
+	unless (my $session = $self->_session_exists) {
 		$session = POE::Session->create(
 			package_states => [
 				__PACKAGE__, {
@@ -124,8 +116,8 @@ sub _init_session {
 			],
 			heap => { mojo_reactor => $self },
 		);
-		$self->{session_id} = $session->ID;
 		weaken $session->get_heap()->{mojo_reactor};
+		$self->{session_id} = $session->ID;
 	}
 	return $self;
 }
