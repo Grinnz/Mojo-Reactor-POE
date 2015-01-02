@@ -276,6 +276,7 @@ sub _event_clear_io {
 	my $io = $self->{io}{$fd};
 	POE::Kernel->select_read($io->{handle});
 	POE::Kernel->select_write($io->{handle});
+	delete $io->{handle};
 	
 	warn "-- Cleared POE IO watcher for $fd\n" if DEBUG;
 }
@@ -319,6 +320,7 @@ sub _event_shutdown {
 		my $handle = $self->{io}{$fd}{handle} // next;
 		POE::Kernel->select_read($handle);
 		POE::Kernel->select_write($handle);
+		delete $self->{io}{$fd}{handle};
 	}
 	POE::Kernel->alarm_remove_all();
 }
