@@ -304,14 +304,39 @@ Mojo::Reactor::POE - POE backend for Mojo::Reactor
 
 =head1 SYNOPSIS
 
- use Mojo::Reactor::POE;
+  use Mojo::Reactor::POE;
+
+  # Watch if handle becomes readable or writable
+  my $reactor = Mojo::Reactor::POE->new;
+  $reactor->io($handle => sub {
+    my ($reactor, $writable) = @_;
+    say $writable ? 'Handle is writable' : 'Handle is readable';
+  });
+
+  # Change to watching only if handle becomes writable
+  $reactor->watch($handle, 0, 1);
+
+  # Add a timer
+  $reactor->timer(15 => sub {
+    my $reactor = shift;
+    $reactor->remove($handle);
+    say 'Timeout!';
+  });
+
+  # Start reactor if necessary
+  $reactor->start unless $reactor->is_running;
+
+  # Or in an application using Mojo::IOLoop
+  BEGIN { $ENV{MOJO_REACTOR} = 'Mojo::Reactor::POE' }
+  use Mojo::IOLoop;
 
 =head1 DESCRIPTION
 
 L<Mojo::Reactor::POE> is an event reactor for L<Mojo::IOLoop> that uses L<POE>.
 The usage is exactly the same as other L<Mojo::Reactor> backends such as
-L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::IOLoop>,
-set the C<MOJO_REACTOR> environment variable to C<Mojo::Reactor::POE>.
+L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::Reactor>,
+set the C<MOJO_REACTOR> environment variable to C<Mojo::Reactor::POE>. This
+must be set before L<Mojo::IOLoop> is loaded.
 
 =head1 EVENTS
 
