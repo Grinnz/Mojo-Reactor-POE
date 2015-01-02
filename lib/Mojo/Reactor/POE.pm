@@ -435,7 +435,7 @@ this method requires an active I/O watcher.
 
 If you set a timer or I/O watcher, and don't call L</"start"> or
 L</"one_tick"> (or start L<POE::Kernel> separately), L<POE> will output a
-warning that C<POE::Kernel->run()> was not called. This is consistent with
+warning that C<POE::Kernel-\>run()> was not called. This is consistent with
 creating your own L<POE::Session> and not starting L<POE::Kernel>. See
 L<POE::Kernel/"run"> for more information.
 
