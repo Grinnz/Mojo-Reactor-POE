@@ -106,9 +106,7 @@ sub _session_exists {
 sub _init_session {
 	my $self = shift;
 	my $session;
-	if ($session = $self->_session_exists) {
-		$session->get_heap()->{mojo_reactor} = $self;
-	} else {
+	unless ($session = $self->_session_exists) {
 		$session = POE::Session->create(
 			package_states => [
 				__PACKAGE__, {
@@ -126,8 +124,8 @@ sub _init_session {
 			heap => { mojo_reactor => $self },
 		);
 		$self->{session_id} = $session->ID;
+		weaken $session->get_heap()->{mojo_reactor};
 	}
-	weaken $session->get_heap()->{mojo_reactor};
 	return $self;
 }
 
