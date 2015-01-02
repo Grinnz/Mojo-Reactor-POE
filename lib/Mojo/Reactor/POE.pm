@@ -4,7 +4,6 @@ use Mojo::Base 'Mojo::Reactor::Poll';
 use POE;
 use Mojo::Util 'steady_time';
 use Scalar::Util 'weaken';
-use List::Util 'first';
 
 use constant { POE_IO_READ => 0, POE_IO_WRITE => 1 };
 use constant DEBUG => $ENV{MOJO_REACTOR_POE_DEBUG} || 0;
@@ -171,9 +170,9 @@ sub _event_start {
 	my $self = $_[HEAP]->{mojo_reactor};
 	my $session = $_[SESSION];
 	
-	#warn "-- POE session started\n" if DEBUG;
-	#use Data::Dumper; warn Dumper($self->{timers});
-	# Start timers and watchers
+	warn "-- POE session started\n" if DEBUG;
+	
+	# Start timers and watchers that were queued up
 	if ($self->{queue}{timers}) {
 		foreach my $id (@{$self->{queue}{timers}}) {
 			POE::Kernel->call($session, mojo_set_timer => $id);
@@ -190,8 +189,10 @@ sub _event_start {
 sub _event_stop {
 	my $self = $_[HEAP]->{mojo_reactor};
 	
-	#warn "-- POE session stopped\n" if DEBUG;
+	warn "-- POE session stopped\n" if DEBUG;
 	
+	# POE is killing this session, and we can't make a new one here.
+	# Queue up the current timers and IO watchers to be started later.
 	$self->{queue} = {
 		timers => [keys %{$self->{timers}}],
 		io => [keys %{$self->{io}}]
