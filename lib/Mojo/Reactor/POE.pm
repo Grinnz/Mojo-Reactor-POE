@@ -2,7 +2,7 @@ package Mojo::Reactor::POE;
 use Mojo::Base 'Mojo::Reactor::Poll';
 
 use POE;
-use Mojo::Util 'steady_time';
+use Mojo::Util qw(md5_sum steady_time);
 use Scalar::Util 'weaken';
 
 use constant { POE_IO_READ => 0, POE_IO_WRITE => 1 };
@@ -75,12 +75,21 @@ sub watch {
 	return $self;
 }
 
+sub _id {
+	my $self = shift;
+	my $id;
+	do { $id = md5_sum 't' . steady_time . rand 999 } while $self->{timers}{$id};
+	return $id;
+}
+
 sub _timer {
 	my ($self, $recurring, $after, $cb) = @_;
 	$after ||= 0.0001 if $recurring;
 	
-	my $id = $self->SUPER::_timer($recurring, $after, $cb);
-	my $timer = $self->{timers}{$id};
+	my $id = $self->_id;
+	my $timer = $self->{timers}{$id}
+		= {cb => $cb, after => $after, time => steady_time + $after};
+	$timer->{recurring} = $after if $recurring;
 	$self->_send_set_timer($id);
 	
 	warn "-- Set timer $id after $after seconds\n" if DEBUG;
