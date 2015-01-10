@@ -38,11 +38,13 @@ sub remove {
 	return unless defined $remove;
 	if (ref $remove) {
 		if (exists $self->{io}{fileno $remove}) {
+			warn "-- Removed IO watcher for ".fileno($remove)."\n" if DEBUG;
 			$self->_send_clear_io(fileno $remove);
 		}
 		return !!delete $self->{io}{fileno $remove};
 	} else {
 		if (exists $self->{timers}{$remove}) {
+			warn "-- Removed timer $remove\n" if DEBUG;
 			$self->_send_clear_timer($remove);
 		}
 		return !!delete $self->{timers}{$remove};
@@ -68,9 +70,10 @@ sub watch {
 	$io->{handle} = $handle;
 	$io->{read} = $read;
 	$io->{write} = $write;
-	$self->_send_set_io(fileno $handle);
 	
 	warn "-- Set IO watcher for ".fileno($handle)."\n" if DEBUG;
+	
+	$self->_send_set_io(fileno $handle);
 	
 	return $self;
 }
@@ -84,15 +87,16 @@ sub _id {
 
 sub _timer {
 	my ($self, $recurring, $after, $cb) = @_;
-	$after ||= 0.0001 if $recurring;
 	
 	my $id = $self->_id;
 	my $timer = $self->{timers}{$id}
 		= {cb => $cb, after => $after, time => steady_time + $after};
 	$timer->{recurring} = $after if $recurring;
-	$self->_send_set_timer($id);
 	
-	warn "-- Set timer $id after $after seconds\n" if DEBUG;
+	my $is_recurring = $recurring ? ' (recurring)' : '';
+	warn "-- Set timer $id after $after seconds$is_recurring\n" if DEBUG;
+	
+	$self->_send_set_timer($id);
 	
 	return $id;
 }
@@ -287,8 +291,8 @@ sub _event_timer {
 	
 	my $timer = $self->{timers}{$id};
 	warn "-- Event fired for timer $id\n" if DEBUG;
-	if ($timer->{recurring}) {
-		$timer->{time} = steady_time + $timer->{after};
+	if (exists $timer->{recurring}) {
+		$timer->{time} = steady_time + $timer->{recurring};
 		$self->_send_set_timer($id);
 	} else {
 		delete $self->{timers}{$id};
