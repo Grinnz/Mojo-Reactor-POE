@@ -85,6 +85,11 @@ sub _id {
 	return $id;
 }
 
+sub _sandbox {
+	my ($self, $event, $cb) = (shift, shift, shift);
+	eval { $self->$cb(@_); 1 } or $self->emit(error => "$event failed: $@");
+}
+
 sub _timer {
 	my ($self, $recurring, $after, $cb) = @_;
 	
