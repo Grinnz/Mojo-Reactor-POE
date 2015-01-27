@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.003     2015-01-27 12:13:35-05:00 America/New_York
   - Handle object destruction with reset instead of signal
 
 0.002     2015-01-09 19:02:59-05:00 America/New_York
