@@ -12,7 +12,12 @@ our $VERSION = '0.003';
 
 my $POE;
 
-sub DESTROY { shift->_send_shutdown; undef $POE; }
+sub DESTROY {
+	my $self = shift;
+	$self->reset;
+	$self->_send_clear_all;
+	undef $POE;
+}
 
 sub again {
 	my ($self, $id) = @_;
@@ -126,6 +131,7 @@ sub _init_session {
 					mojo_set_timer 		=> '_event_set_timer',
 					mojo_clear_timer	=> '_event_clear_timer',
 					mojo_adjust_timer	=> '_event_adjust_timer',
+					mojo_clear_all		=> '_event_clear_all',
 					mojo_set_io			=> '_event_set_io',
 					mojo_clear_io		=> '_event_clear_io',
 					mojo_timer			=> '_event_timer',
@@ -161,6 +167,12 @@ sub _send_clear_timer {
 	POE::Kernel->call($self->{session_id}, mojo_clear_timer => $id);
 }
 
+sub _send_clear_all {
+	my $self = shift;
+	return unless $self->_session_exists;
+	POE::Kernel->call($self->{session_id}, 'mojo_clear_all')
+}
+
 sub _send_set_io {
 	my ($self, $fd) = @_;
 	# We need a session to set a watcher
@@ -173,12 +185,6 @@ sub _send_clear_io {
 	# If session doesn't exist, the watcher won't be re-added
 	return unless $self->_session_exists;
 	POE::Kernel->call($self->{session_id}, mojo_clear_io => $fd);
-}
-
-sub _send_shutdown {
-	my $self = shift;
-	return unless $self->_session_exists;
-	POE::Kernel->signal($self->{session_id}, 'TERM');
 }
 
 sub _event_start {
@@ -254,6 +260,13 @@ sub _event_adjust_timer {
 	
 	warn "-- Adjusted POE timer $timer->{poe_id} to $new_delay seconds\n"
 		if DEBUG;
+}
+
+sub _event_clear_all {
+	my $self = $_[HEAP]->{mojo_reactor} // return;
+	POE::Kernel->alarm_remove_all;
+	
+	warn "-- Cleared all POE timers\n" if DEBUG;
 }
 
 sub _event_set_io {
