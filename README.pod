@@ -42,12 +42,12 @@ must be set before L<Mojo::IOLoop> is loaded.
 
 =head1 EVENTS
 
-L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor::Poll>.
+L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor>.
 
 =head1 METHODS
 
-L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll> and
-implements the following new ones.
+L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor> and implements
+the following new ones.
 
 =head2 again
 
@@ -159,6 +159,6 @@ the terms of the Artistic License version 2.0.
 
 =head1 SEE ALSO
 
-L<Mojolicious>, L<Mojolicious::IOLoop>, L<POE>
+L<Mojolicious>, L<Mojo::IOLoop>, L<POE>
 
 =cut

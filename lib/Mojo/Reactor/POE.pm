@@ -1,7 +1,8 @@
 package Mojo::Reactor::POE;
-use Mojo::Base 'Mojo::Reactor::Poll';
+use Mojo::Base 'Mojo::Reactor';
 
 use POE;
+use Mojo::Reactor::Poll;
 use Mojo::Util qw(md5_sum steady_time);
 use Scalar::Util 'weaken';
 
@@ -24,6 +25,12 @@ sub again {
 	my $timer = $self->{timers}{$id};
 	$timer->{time} = steady_time + $timer->{after};
 	$self->_send_adjust_timer($id);
+}
+
+sub io {
+	my ($self, $handle, $cb) = @_;
+	$self->{io}{fileno $handle} = {cb => $cb};
+	return $self->watch($handle, 1, 1);
 }
 
 sub is_running {
@@ -376,12 +383,12 @@ must be set before L<Mojo::IOLoop> is loaded.
 
 =head1 EVENTS
 
-L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor::Poll>.
+L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor>.
 
 =head1 METHODS
 
-L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll> and
-implements the following new ones.
+L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor> and implements
+the following new ones.
 
 =head2 again
 
@@ -493,7 +500,7 @@ the terms of the Artistic License version 2.0.
 
 =head1 SEE ALSO
 
-L<Mojolicious>, L<Mojolicious::IOLoop>, L<POE>
+L<Mojolicious>, L<Mojo::IOLoop>, L<POE>
 
 =cut
 

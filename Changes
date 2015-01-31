@@ -1,4 +1,5 @@
 {{$NEXT}}
+  - Subclass Mojo::Reactor instead of Mojo::Reactor::Poll
 
 0.003     2015-01-27 12:13:35-05:00 America/New_York
   - Handle object destruction with reset instead of signal
