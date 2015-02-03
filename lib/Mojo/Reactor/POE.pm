@@ -125,16 +125,13 @@ sub _timer {
 sub _session_exists {
 	my $self = shift;
 	return undef unless defined $self->{session_id};
-	if (my $session = POE::Kernel->ID_id_to_session($self->{session_id})) {
-		return $session;
-	}
-	return undef;
+	return !!POE::Kernel->ID_id_to_session($self->{session_id});
 }
 
 sub _init_session {
 	my $self = shift;
-	unless (my $session = $self->_session_exists) {
-		$session = POE::Session->create(
+	unless ($self->_session_exists) {
+		my $session = POE::Session->create(
 			package_states => [
 				__PACKAGE__, {
 					_start				=> '_event_start',
