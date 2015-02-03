@@ -110,8 +110,10 @@ sub _timer {
 		= {cb => $cb, after => $after, time => steady_time + $after};
 	$timer->{recurring} = $after if $recurring;
 	
-	my $is_recurring = $recurring ? ' (recurring)' : '';
-	warn "-- Set timer $id after $after seconds$is_recurring\n" if DEBUG;
+	if (DEBUG) {
+		my $is_recurring = $recurring ? ' (recurring)' : '';
+		warn "-- Set timer $id after $after seconds$is_recurring\n";
+	}
 	
 	$self->_send_set_timer($id);
 	
@@ -371,6 +373,7 @@ Mojo::Reactor::POE - POE backend for Mojo::Reactor
 
   # Or in an application using Mojo::IOLoop
   BEGIN { $ENV{MOJO_REACTOR} = 'Mojo::Reactor::POE' }
+  use POE qw(Loop::IO_Poll);
   use Mojo::IOLoop;
 
 =head1 DESCRIPTION
@@ -380,6 +383,13 @@ The usage is exactly the same as other L<Mojo::Reactor> backends such as
 L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::Reactor>,
 set the C<MOJO_REACTOR> environment variable to C<Mojo::Reactor::POE>. This
 must be set before L<Mojo::IOLoop> is loaded.
+
+Note that because L<IO::Poll> is loaded by L<Mojolicious>, it will be used as
+the default loop for L<POE> when using this module. If you also load other
+potential event loops for L<POE> (or have L<POE::Loop::Mojo_IOLoop> installed)
+you must explicitly set the event loop for L<POE> before loading this reactor
+or L<Mojo::IOLoop>, or L<POE> will detect multiple event loops and fail. See
+L<POE::Kernel/"Using-POE-with-Other-Event-Loops">.
 
 =head1 EVENTS
 
