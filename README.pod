@@ -46,7 +46,7 @@ the default loop for L<POE> when using this module. If you also load other
 potential event loops for L<POE> (or have L<POE::Loop::Mojo_IOLoop> installed)
 you must explicitly set the event loop for L<POE> before loading this reactor
 or L<Mojo::IOLoop>, or L<POE> will detect multiple event loops and fail. See
-L<POE::Kernel/"Using-POE-with-Other-Event-Loops">.
+L<POE::Kernel/"Using POE with Other Event Loops">.
 
 =head1 EVENTS
 
