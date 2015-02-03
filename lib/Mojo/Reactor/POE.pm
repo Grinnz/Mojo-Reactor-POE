@@ -1,7 +1,9 @@
 package Mojo::Reactor::POE;
+
+use POE; # Loaded early to avoid event loop confusion
+
 use Mojo::Base 'Mojo::Reactor';
 
-use POE;
 use Mojo::Reactor::Poll;
 use Mojo::Util qw(md5_sum steady_time);
 use Scalar::Util 'weaken';
@@ -384,12 +386,11 @@ L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::Reactor>,
 set the C<MOJO_REACTOR> environment variable to C<Mojo::Reactor::POE>. This
 must be set before L<Mojo::IOLoop> is loaded.
 
-Note that because L<IO::Poll> is loaded by L<Mojolicious>, it will be used as
-the default loop for L<POE> when using this module. If you also load other
-potential event loops for L<POE> (or have L<POE::Loop::Mojo_IOLoop> installed)
-you must explicitly set the event loop for L<POE> before loading this reactor
-or L<Mojo::IOLoop>, or L<POE> will detect multiple event loops and fail. See
-L<POE::Kernel/"Using POE with Other Event Loops">.
+Note that if you load multiple potential event loops for L<POE> it will fail.
+This includes L<IO::Poll> and L<Mojo::IOLoop> (loaded by L<Mojolicious>) if the
+appropriate L<POE::Loop> modules are installed. To avoid this, load L<POE>
+before any L<Mojolicious> module, or specify the L<POE> event loop explicitly.
+See L<POE::Kernel/"Using POE with Other Event Loops">.
 
 =head1 EVENTS
 
