@@ -378,8 +378,8 @@ Mojo::Reactor::POE - POE backend for Mojo::Reactor
 =head1 DESCRIPTION
 
 L<Mojo::Reactor::POE> is an event reactor for L<Mojo::IOLoop> that uses L<POE>.
-The usage is exactly the same as other L<Mojo::Reactor> backends such as
-L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::Reactor>,
+The usage is exactly the same as other L<Mojo::Reactor> implementations such as
+L<Mojo::Reactor::Poll>. To set it as the default backend for L<Mojo::IOLoop>,
 set the C<MOJO_REACTOR> environment variable to C<Mojo::Reactor::POE>. This
 must be set before L<Mojo::IOLoop> is loaded.
 
