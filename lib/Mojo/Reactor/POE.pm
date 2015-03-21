@@ -6,6 +6,7 @@ use Mojo::Base 'Mojo::Reactor';
 
 $ENV{MOJO_REACTOR} ||= 'Mojo::Reactor::POE';
 
+use Carp 'croak';
 use Mojo::Reactor::Poll;
 use Mojo::Util qw(md5_sum steady_time);
 use Scalar::Util 'weaken';
@@ -26,7 +27,7 @@ sub DESTROY {
 
 sub again {
 	my ($self, $id) = @_;
-	my $timer = $self->{timers}{$id};
+	croak 'Timer not active' unless my $timer = $self->{timers}{$id};
 	$timer->{time} = steady_time + $timer->{after};
 	$self->_send_adjust_timer($id);
 }
@@ -82,7 +83,7 @@ sub timer { shift->_timer(0, @_) }
 sub watch {
 	my ($self, $handle, $read, $write) = @_;
 	
-	my $io = $self->{io}{fileno $handle};
+	croak 'I/O watcher not active' unless my $io = $self->{io}{fileno $handle};
 	$io->{handle} = $handle;
 	$io->{read} = $read;
 	$io->{write} = $write;
@@ -411,7 +412,7 @@ the following new ones.
 
   $reactor->again($id);
 
-Restart active timer.
+Restart timer. Note that this method requires an active timer.
 
 =head2 io
 

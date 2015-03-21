@@ -1,4 +1,5 @@
 {{$NEXT}}
+  - Updated again and watch methods to croak on inactive watchers
 
 0.006     2015-02-23 13:47:45-05:00 America/New_York
   - Remove deprecated is_readable method from tests
