@@ -46,6 +46,13 @@ sub is_running {
 # We have to fall back to Mojo::Reactor::Poll, since POE::Kernel is unique
 sub new { $POE++ ? Mojo::Reactor::Poll->new : shift->SUPER::new }
 
+sub next_tick {
+	my ($self, $cb) = @_;
+	push @{$self->{next_tick}}, $cb;
+	$self->{next_timer} //= $self->timer(0 => \&_next);
+	return undef;
+}
+
 sub one_tick { shift->_init_session; POE::Kernel->run_one_timeslice; }
 
 sub recurring { shift->_timer(1, @_) }
@@ -72,6 +79,7 @@ sub reset {
 	my $self = shift;
 	$self->remove($_) for keys %{$self->{timers}};
 	$self->remove($self->{io}{$_}{handle}) for keys %{$self->{io}};
+	delete @{$self}{qw(next_tick next_timer)};
 }
 
 sub start { shift->_init_session; POE::Kernel->run; }
@@ -102,9 +110,10 @@ sub _id {
 	return $id;
 }
 
-sub _sandbox {
-	my ($self, $event, $cb) = (shift, shift, shift);
-	eval { $self->$cb(@_); 1 } or $self->emit(error => "$event failed: $@");
+sub _next {
+	my $self = shift;
+	delete $self->{next_timer};
+	while (my $cb = shift @{$self->{next_tick}}) { $self->$cb }
 }
 
 sub _timer {
@@ -123,6 +132,11 @@ sub _timer {
 	$self->_send_set_timer($id);
 	
 	return $id;
+}
+
+sub _try {
+	my ($self, $what, $cb) = (shift, shift, shift);
+	eval { $self->$cb(@_); 1 } or $self->emit(error => "$what failed: $@");
 }
 
 sub _session_exists {
@@ -327,7 +341,7 @@ sub _event_timer {
 		delete $self->{timers}{$id};
 	}
 	
-	$self->_sandbox("Timer $id", $timer->{cb});
+	$self->_try('Timer', $timer->{cb});
 }
 
 sub _event_io {
@@ -337,9 +351,9 @@ sub _event_io {
 	my $io = $self->{io}{fileno $handle};
 	#warn "-- Event fired for IO watcher ".fileno($handle)."\n" if DEBUG;
 	if ($mode == POE_IO_READ) {
-		$self->_sandbox('Read', $io->{cb}, 0);
+		$self->_try('I/O watcher', $io->{cb}, 0);
 	} elsif ($mode == POE_IO_WRITE) {
-		$self->_sandbox('Write', $io->{cb}, 1);
+		$self->_try('I/O watcher', $io->{cb}, 1);
 	} else {
 		die "Unknown POE I/O mode $mode";
 	}
@@ -355,18 +369,26 @@ Mojo::Reactor::POE - POE backend for Mojo::Reactor
 
   # Watch if handle becomes readable or writable
   my $reactor = Mojo::Reactor::POE->new;
-  $reactor->io($handle => sub {
+  $reactor->io($first => sub {
     my ($reactor, $writable) = @_;
-    say $writable ? 'Handle is writable' : 'Handle is readable';
+    say $writable ? 'First handle is writable' : 'First handle is readable';
   });
 
   # Change to watching only if handle becomes writable
-  $reactor->watch($handle, 0, 1);
+  $reactor->watch($first, 0, 1);
+
+  # Turn file descriptor into handle and watch if it becomes readable
+  my $second = IO::Handle->new_from_fd($fd, 'r');
+  $reactor->io($second => sub {
+    my ($reactor, $writable) = @_;
+    say $writable ? 'Second handle is writable' : 'Second handle is readable';
+  })->watch($second, 1, 0);
 
   # Add a timer
   $reactor->timer(15 => sub {
     my $reactor = shift;
-    $reactor->remove($handle);
+    $reactor->remove($first);
+    $reactor->remove($second);
     say 'Timeout!';
   });
 
@@ -432,6 +454,13 @@ Check if reactor is running.
   my $reactor = Mojo::Reactor::POE->new;
 
 Construct a new L<Mojo::Reactor::POE> object.
+
+=head2 next_tick
+
+  my $undef = $reactor->next_tick(sub {...});
+
+Invoke callback as soon as possible, but not before returning or other
+callbacks that have been registered with this method, always returns C<undef>.
 
 =head2 one_tick
 
