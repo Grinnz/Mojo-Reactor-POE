@@ -21,7 +21,6 @@ my $POE;
 sub DESTROY {
 	my $self = shift;
 	$self->reset;
-	$self->_session_call_if_exists('mojo_clear_all');
 	undef $POE;
 }
 
@@ -30,7 +29,7 @@ sub again {
 	croak 'Timer not active' unless my $timer = $self->{timers}{$id};
 	$timer->{time} = steady_time + $timer->{after};
 	# If session doesn't exist, the time will be set when it starts
-	$self->_session_call_if_exists(mojo_adjust_timer => $id);
+	$self->_session_call(mojo_adjust_timer => $id) if $self->_session_exists;
 }
 
 sub io {
@@ -65,14 +64,14 @@ sub remove {
 		if (exists $self->{io}{fileno $remove}) {
 			warn "-- Removed IO watcher for ".fileno($remove)."\n" if DEBUG;
 			# If session doesn't exist, the watcher won't be re-added
-			$self->_session_call_if_exists(mojo_clear_io => fileno $remove);
+			$self->_session_call(mojo_clear_io => fileno $remove) if $self->_session_exists;
 		}
 		return !!delete $self->{io}{fileno $remove};
 	} else {
 		if (exists $self->{timers}{$remove}) {
 			warn "-- Removed timer $remove\n" if DEBUG;
 			# If session doesn't exist, the timer won't be re-added
-			$self->_session_call_if_exists(mojo_clear_timer => $remove);
+			$self->_session_call(mojo_clear_timer => $remove) if $self->_session_exists;
 		}
 		return !!delete $self->{timers}{$remove};
 	}
@@ -80,9 +79,12 @@ sub remove {
 
 sub reset {
 	my $self = shift;
-	$self->remove($_) for keys %{$self->{timers}};
-	$self->remove($self->{io}{$_}{handle}) for keys %{$self->{io}};
-	delete @{$self}{qw(next_tick next_timer)};
+	# If session doesn't exist, watchers won't be re-added
+	if ($self->_session_exists) {
+		$self->_session_call('mojo_clear_timers');
+		$self->_session_call(mojo_clear_io => $_) for keys %{$self->{io}};
+	}
+	delete @{$self}{qw(io next_tick next_timer timers)};
 }
 
 sub start { shift->_init_session; POE::Kernel->run; }
@@ -101,7 +103,7 @@ sub watch {
 	
 	warn "-- Set IO watcher for ".fileno($handle)."\n" if DEBUG;
 	
-	$self->_session_call(mojo_set_io => fileno $handle);
+	$self->_init_session->_session_call(mojo_set_io => fileno $handle);
 	
 	return $self;
 }
@@ -132,7 +134,7 @@ sub _timer {
 		warn "-- Set timer $id after $after seconds$is_recurring\n";
 	}
 	
-	$self->_session_call(mojo_set_timer => $id);
+	$self->_init_session->_session_call(mojo_set_timer => $id);
 	
 	return $id;
 }
@@ -152,7 +154,7 @@ sub _init_session {
 				mojo_set_timer 		=> \&_event_set_timer,
 				mojo_clear_timer	=> \&_event_clear_timer,
 				mojo_adjust_timer	=> \&_event_adjust_timer,
-				mojo_clear_all		=> \&_event_clear_all,
+				mojo_clear_timers	=> \&_event_clear_timers,
 				mojo_set_io			=> \&_event_set_io,
 				mojo_clear_io		=> \&_event_clear_io,
 				mojo_timer			=> \&_event_timer,
@@ -172,15 +174,9 @@ sub _session_exists {
 	return !!POE::Kernel->ID_id_to_session($self->{session_id});
 }
 
-sub _session_call_if_exists {
-	my $self = shift;
-	POE::Kernel->call($self->{session_id}, @_) if $self->_session_exists;
-	return $self;
-}
-
 sub _session_call {
 	my $self = shift;
-	$self->_init_session;
+	croak 'Session call on nonexistent session' unless defined $self->{session_id};
 	POE::Kernel->call($self->{session_id}, @_);
 	return $self;
 }
@@ -260,7 +256,7 @@ sub _event_adjust_timer {
 		if DEBUG;
 }
 
-sub _event_clear_all {
+sub _event_clear_timers {
 	my $self = $_[HEAP]{mojo_reactor} // return;
 	POE::Kernel->alarm_remove_all;
 	
@@ -309,7 +305,7 @@ sub _event_timer {
 	warn "-- Event fired for timer $id\n" if DEBUG;
 	if (exists $timer->{recurring}) {
 		$timer->{time} = steady_time + $timer->{recurring};
-		$self->_session_call(mojo_set_timer => $id);
+		$self->_init_session->_session_call(mojo_set_timer => $id);
 	} else {
 		delete $self->{timers}{$id};
 	}
