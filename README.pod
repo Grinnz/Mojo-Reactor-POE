@@ -146,7 +146,7 @@ Remove all handles and timers.
   $reactor->start;
 
 Start watching for I/O and timer events, this will block until L</"stop"> is
-called or no events are being watched anymore.
+called or no events are being watched anymore. See L</"CAVEATS">.
 
   # Start reactor only if it is not running already
   $reactor->start unless $reactor->is_running;
@@ -155,7 +155,7 @@ called or no events are being watched anymore.
 
   $reactor->stop;
 
-Stop watching for I/O and timer events. See L</"CAVEATS">.
+Stop watching for I/O and timer events.
 
 =head2 timer
 

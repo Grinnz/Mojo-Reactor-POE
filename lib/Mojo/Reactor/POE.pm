@@ -21,7 +21,7 @@ my $POE;
 
 sub DESTROY {
 	my $self = shift;
-	$self->reset;
+	$self->reset; # Close session
 	undef $POE;
 }
 
@@ -183,8 +183,7 @@ sub _init_session {
 
 sub _session_exists {
 	my $self = shift;
-	return undef unless defined $self->{session_id};
-	return !!POE::Kernel->ID_id_to_session($self->{session_id});
+	return defined $self->{session_id};
 }
 
 sub _session_call {
@@ -199,19 +198,6 @@ sub _event_start {
 	my $session = $_[SESSION];
 	
 	warn "-- POE session started\n" if DEBUG;
-	
-	# Start timers and watchers that were queued up
-	if ($self->{queue}{timers}) {
-		foreach my $id (@{$self->{queue}{timers}}) {
-			POE::Kernel->call($session, mojo_set_timer => $id);
-		}
-	}
-	if ($self->{queue}{io}) {
-		foreach my $fd (@{$self->{queue}{io}}) {
-			POE::Kernel->call($session, mojo_set_io => $fd);
-		}
-	}
-	delete $self->{queue};
 }
 
 sub _event_stop {
@@ -219,16 +205,7 @@ sub _event_stop {
 	
 	warn "-- POE session stopped\n" if DEBUG;
 	
-	return unless $self;
-	
-	# POE is killing this session, and we can't make a new one here.
-	# Queue up the current timers and IO watchers to be started later.
-	$self->{queue} = {
-		timers => [keys %{$self->{timers}}],
-		io => [keys %{$self->{io}}]
-	};
-	
-	delete $self->{session_id};
+	delete $self->{session_id} if $self;
 }
 
 sub _event_set_timer {
@@ -489,7 +466,7 @@ Remove all handles and timers.
   $reactor->start;
 
 Start watching for I/O and timer events, this will block until L</"stop"> is
-called or no events are being watched anymore.
+called or no events are being watched anymore. See L</"CAVEATS">.
 
   # Start reactor only if it is not running already
   $reactor->start unless $reactor->is_running;
@@ -498,7 +475,7 @@ called or no events are being watched anymore.
 
   $reactor->stop;
 
-Stop watching for I/O and timer events. See L</"CAVEATS">.
+Stop watching for I/O and timer events.
 
 =head2 timer
 
