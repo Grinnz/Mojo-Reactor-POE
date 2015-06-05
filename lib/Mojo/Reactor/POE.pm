@@ -1,6 +1,7 @@
 package Mojo::Reactor::POE;
 
 use POE; # Loaded early to avoid event loop confusion
+BEGIN { POE::Kernel->run } # silence run() warning
 
 use Mojo::Base 'Mojo::Reactor';
 
@@ -38,10 +39,7 @@ sub io {
 	return $self->watch($handle, 1, 1);
 }
 
-sub is_running {
-	my $session = POE::Kernel->get_active_session;
-	return !!($session->ID ne POE::Kernel->ID);
-}
+sub is_running { !!(shift->{running}) }
 
 # We have to fall back to Mojo::Reactor::Poll, since POE::Kernel is unique
 sub new { $POE++ ? Mojo::Reactor::Poll->new : shift->SUPER::new }
@@ -53,7 +51,18 @@ sub next_tick {
 	return undef;
 }
 
-sub one_tick { shift->_init_session; POE::Kernel->run_one_timeslice; }
+sub one_tick {
+	my $self = shift;
+	$self->_init_session;
+	
+	# Stop automatically if there is nothing to watch
+	return $self->stop unless keys %{$self->{timers}} || keys %{$self->{io}};
+	
+	# Just one tick
+	local $self->{running} = 1 unless $self->{running};
+	
+	POE::Kernel->run_one_timeslice;
+}
 
 sub recurring { shift->_timer(1, @_) }
 
@@ -87,9 +96,13 @@ sub reset {
 	delete @{$self}{qw(io next_tick next_timer timers)};
 }
 
-sub start { shift->_init_session; POE::Kernel->run; }
+sub start {
+	my $self = shift;
+	$self->{running}++;
+	$self->one_tick while $self->{running};
+}
 
-sub stop { POE::Kernel->stop }
+sub stop { delete shift->{running} }
 
 sub timer { shift->_timer(0, @_) }
 
@@ -328,6 +341,8 @@ sub _event_io {
 	}
 }
 
+1;
+
 =head1 NAME
 
 Mojo::Reactor::POE - POE backend for Mojo::Reactor
@@ -513,16 +528,14 @@ this method requires an active I/O watcher.
 
 =head1 CAVEATS
 
-If you set a timer or I/O watcher, and don't call L</"start"> or
-L</"one_tick"> (or start L<POE::Kernel> separately), L<POE> will output a
-warning that C<POE::Kernel-E<gt>run()> was not called. This is consistent with
-creating your own L<POE::Session> and not starting L<POE::Kernel>. See
-L<POE::Kernel/"run"> for more information.
+When using L<Mojo::IOLoop> with L<POE>, the event loop must be controlled by
+L<Mojo::IOLoop> or L<Mojo::Reactor::POE>, such as with the methods L</"start">,
+L</"stop">, and L</"one_tick">. Starting or stopping the event loop through
+L<POE> will not provide required functionality to L<Mojo::IOLoop> applications.
 
-To stop the L<POE::Kernel> reactor, all sessions must be stopped and are thus
-destroyed. Be aware of this if you create your own L<POE> sessions then stop
-the reactor. I/O and timer events managed by L<Mojo::Reactor::POE> will
-persist.
+Externally-added sessions will not keep the L<Mojo::IOLoop> running if
+L<Mojo::Reactor::POE> has nothing left to watch. This can be worked around by
+adding a recurring timer for the reactor to watch.
 
 =head1 BUGS
 
@@ -543,7 +556,3 @@ the terms of the Artistic License version 2.0.
 =head1 SEE ALSO
 
 L<Mojolicious>, L<Mojo::IOLoop>, L<POE>
-
-=cut
-
-1;

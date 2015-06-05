@@ -273,7 +273,7 @@ Mojo::IOLoop->client(
         my ($stream, $chunk) = @_;
         $buffer .= $chunk;
         return unless $buffer eq 'test321';
-        POE::Kernel->stop();
+        Mojo::IOLoop->stop;
       }
     );
     $client_running = Mojo::IOLoop->is_running;
@@ -281,7 +281,7 @@ Mojo::IOLoop->client(
     $client_err = $@;
   }
 );
-POE::Kernel->run();
+Mojo::IOLoop->start;
 ok !Mojo::IOLoop->is_running, 'loop is not running';
 like $server_err, qr/^Mojo::IOLoop already running/, 'right error';
 like $client_err, qr/^Mojo::IOLoop already running/, 'right error';
