@@ -1,4 +1,9 @@
 {{$NEXT}}
+  - For consistency with other reactors, POE can no longer be used to start or
+    stop the event loop, but sessions are no longer destroyed when the reactor
+    is stopped.
+  - The reactor now stops when it has no more active watchers, regardless of
+    external POE sessions.
 
 0.008     2015-04-27 18:43:21 EDT
   - Support sequential next_tick
