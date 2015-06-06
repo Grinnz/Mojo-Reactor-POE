@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.009     2015-06-05 20:04:26 EDT
   - For consistency with other reactors, POE can no longer be used to start or
     stop the event loop, but sessions are no longer destroyed when the reactor
     is stopped.
