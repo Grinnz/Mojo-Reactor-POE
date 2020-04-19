@@ -64,37 +64,12 @@ See L<POE::Kernel/"Using POE with Other Event Loops">.
 
 =head1 EVENTS
 
-L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor>.
+L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor::Poll>.
 
 =head1 METHODS
 
-L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor> and implements
-the following new ones.
-
-=head2 again
-
-  $reactor->again($id);
-
-Restart timer. Note that this method requires an active timer.
-
-=head2 io
-
-  $reactor = $reactor->io($handle => sub {...});
-
-Watch handle for I/O events, invoking the callback whenever handle becomes
-readable or writable.
-
-  # Callback will be invoked twice if handle becomes readable and writable
-  $reactor->io($handle => sub {
-    my ($reactor, $writable) = @_;
-    say $writable ? 'Handle is writable' : 'Handle is readable';
-  });
-
-=head2 is_running
-
-  my $bool = $reactor->is_running;
-
-Check if reactor is running.
+L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll> and
+implements the following new ones.
 
 =head2 new
 
@@ -102,12 +77,13 @@ Check if reactor is running.
 
 Construct a new L<Mojo::Reactor::POE> object.
 
-=head2 next_tick
+=head2 again
 
-  my $undef = $reactor->next_tick(sub {...});
+  $reactor->again($id);
+  $reactor->again($id, 0.5);
 
-Invoke callback as soon as possible, but not before returning or other
-callbacks that have been registered with this method, always returns C<undef>.
+Restart timer and optionally change the invocation time. Note that this method
+requires an active timer.
 
 =head2 one_tick
 
@@ -141,22 +117,6 @@ Remove handle or timer.
 
 Remove all handles and timers.
 
-=head2 start
-
-  $reactor->start;
-
-Start watching for I/O and timer events, this will block until L</"stop"> is
-called or no events are being watched anymore. See L</"CAVEATS">.
-
-  # Start reactor only if it is not running already
-  $reactor->start unless $reactor->is_running;
-
-=head2 stop
-
-  $reactor->stop;
-
-Stop watching for I/O and timer events.
-
 =head2 timer
 
   my $id = $reactor->timer(0.5 => sub {...});
@@ -186,9 +146,10 @@ this method requires an active I/O watcher.
 =head1 CAVEATS
 
 When using L<Mojo::IOLoop> with L<POE>, the event loop must be controlled by
-L<Mojo::IOLoop> or L<Mojo::Reactor::POE>, such as with the methods L</"start">,
-L</"stop">, and L</"one_tick">. Starting or stopping the event loop through
-L<POE> will not provide required functionality to L<Mojo::IOLoop> applications.
+L<Mojo::IOLoop> or L<Mojo::Reactor::POE>, such as with the methods
+L<Mojo::Reactor::Poll/"start">, L<Mojo::Reactor::Poll/"stop">, and
+L</"one_tick">. Starting or stopping the event loop through L<POE> will not
+provide required functionality to L<Mojo::IOLoop> applications.
 
 Externally-added sessions will not keep the L<Mojo::IOLoop> running if
 L<Mojo::Reactor::POE> has nothing left to watch. This can be worked around by
