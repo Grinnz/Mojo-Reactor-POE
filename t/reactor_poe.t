@@ -283,7 +283,7 @@ package main;
   is(Mojo::Reactor->detect, 'Mojo::Reactor::Test', 'right class');
 }
 
-# POE in control
+# Reactor in control
 is ref Mojo::IOLoop->singleton->reactor, 'Mojo::Reactor::POE', 'right object';
 ok !Mojo::IOLoop->is_running, 'loop is not running';
 my ($buffer, $server_err, $server_running, $client_err, $client_running);
@@ -305,7 +305,7 @@ Mojo::IOLoop->client(
         my ($stream, $chunk) = @_;
         $buffer .= $chunk;
         return unless $buffer eq 'test321';
-        Mojo::IOLoop->stop;
+        Mojo::IOLoop->singleton->reactor->stop;
       }
     );
     $client_running = Mojo::IOLoop->is_running;
@@ -313,7 +313,7 @@ Mojo::IOLoop->client(
     $client_err = $@;
   }
 );
-Mojo::IOLoop->start;
+Mojo::IOLoop->singleton->reactor->start;
 ok !Mojo::IOLoop->is_running, 'loop is not running';
 like $server_err, qr/^Mojo::IOLoop already running/, 'right error';
 like $client_err, qr/^Mojo::IOLoop already running/, 'right error';
