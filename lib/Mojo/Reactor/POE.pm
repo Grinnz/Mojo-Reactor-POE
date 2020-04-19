@@ -79,7 +79,7 @@ sub reset {
 		$self->_session_call('mojo_clear_timers');
 		$self->_session_call(mojo_clear_io => $_) for keys %{$self->{io}};
 	}
-	delete @{$self}{qw(events io next_tick next_timer running timers)};
+	$self->SUPER::reset;
 }
 
 sub timer { shift->_timer(0, @_) }

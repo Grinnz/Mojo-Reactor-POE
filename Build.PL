@@ -90,7 +90,7 @@ EOW
       "recursive_test_files" => 1,
       "requires" => {
         "Carp" => 0,
-        "Mojolicious" => "5.70",
+        "Mojolicious" => "7.37",
         "POE" => "1.366",
         "Scalar::Util" => 0,
         "perl" => "5.010001"
