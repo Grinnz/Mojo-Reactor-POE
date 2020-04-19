@@ -28,8 +28,9 @@ sub DESTROY {
 }
 
 sub again {
-	my ($self, $id) = @_;
+	my ($self, $id, $after) = @_;
 	croak 'Timer not active' unless my $timer = $self->{timers}{$id};
+	$timer->{after} = $after if defined $after;
 	$timer->{time} = steady_time + $timer->{after};
 	# If session doesn't exist, the time will be set when it starts
 	$self->_session_call(mojo_adjust_timer => $id) if $self->_session_exists;
@@ -363,8 +364,8 @@ L<Mojo::Reactor::POE> inherits all events from L<Mojo::Reactor::Poll>.
 
 =head1 METHODS
 
-L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll> and implements
-the following new ones.
+L<Mojo::Reactor::POE> inherits all methods from L<Mojo::Reactor::Poll> and
+implements the following new ones.
 
 =head2 new
 
@@ -375,8 +376,10 @@ Construct a new L<Mojo::Reactor::POE> object.
 =head2 again
 
   $reactor->again($id);
+  $reactor->again($id, 0.5);
 
-Restart timer. Note that this method requires an active timer.
+Restart timer and optionally change the invocation time. Note that this method
+requires an active timer.
 
 =head2 one_tick
 
