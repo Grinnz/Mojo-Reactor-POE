@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+1.000     2020-04-19 21:11:11 EDT
   - Switch installer to Module::Build::Tiny
   - Support changing invocation time of active timers in again method, to
     support keep_alive_timeout added in Mojolicious 8.37
