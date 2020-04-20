@@ -84,7 +84,7 @@ EOW
         "Dan Book <dbook\@cpan.org>"
       ],
       "dist_name" => "Mojo-Reactor-POE",
-      "dist_version" => "0.010",
+      "dist_version" => "1.000",
       "license" => "artistic_2",
       "module_name" => "Mojo::Reactor::POE",
       "recursive_test_files" => 1,

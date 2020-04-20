@@ -60,7 +60,7 @@
    "provides" : {
       "Mojo::Reactor::POE" : {
          "file" : "lib/Mojo/Reactor/POE.pm",
-         "version" : "0.010"
+         "version" : "1.000"
       }
    },
    "release_status" : "stable",
@@ -76,7 +76,7 @@
       },
       "x_IRC" : "irc://irc.freenode.net/#mojo"
    },
-   "version" : "0.010",
+   "version" : "1.000",
    "x_contributors" : [
       "Dan Book <grinnz@grinnz.com>",
       "Grinnz <grinnz@gmail.com>"
