@@ -1,4 +1,5 @@
 {{$NEXT}}
+  - Update IRC metadata to libera.chat
 
 1.000     2020-04-19 21:11:11 EDT
   - Switch installer to Module::Build::Tiny
